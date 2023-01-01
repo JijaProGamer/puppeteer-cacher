@@ -3,11 +3,11 @@ You should ONLY do this for html, js, css and fonts
 
 ```js
 // if false then it saves based on domain and path(example: google.com/something)
-// if false then it saves based on full url (example: google.com/something?another_thing=yes&ok=true)
+// if true then it saves based on full url (example: google.com/something?another_thing=yes&ok=true)
 
 let fullURL = false;
 
-let cacher = require("./index.js");
+let cacher = require("puppeteer-cacher");
 let CACHE = new cacher(fullURL);
 
 // This memory stuff is optional

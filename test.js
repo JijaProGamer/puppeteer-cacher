@@ -1,5 +1,21 @@
-let cacher = require("./index.js")
-let CACHE = new cacher()
+let cache = require("./index.js")
+cache.setFullSave(false)
+
+let memory = {}
+
+cache.changeStore({
+    get: (name) => {
+        return new Promise((resolve, reject) => {
+            resolve(memory[name])
+        })
+    },
+    set: (name, value) => {
+        return new Promise((resolve, reject) => {
+            memory[name] = value
+            resolve()
+        })
+    }
+})
 
 require("puppeteer").launch({
     headless: false
@@ -10,7 +26,7 @@ require("puppeteer").launch({
     page.on('request', async (request) => {
         let type = await request.resourceType()
         if(type == "document" || type == "script" || type == "font" || type == "stylesheet"){
-            CACHE.get(request).then((result) => {            
+            cache.get(request).then((result) => {            
                 if(result){ 
                     request.respond(result)
                 } else {
@@ -23,7 +39,7 @@ require("puppeteer").launch({
     })
 
     page.on("requestfinished", async (request) => {
-        await CACHE.save(await request.response())
+        await cache.save(await request.response())
     })
 
     await page.goto("https://www.google.com/")
