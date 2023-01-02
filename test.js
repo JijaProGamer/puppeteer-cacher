@@ -1,9 +1,9 @@
-let cache = require("./index.js")
-cache.setFullSave(false)
+let api = require("./index.js")
+let cache = new api(false)
 
 let memory = {}
 
-cache.changeStore({
+cache.memory = {
     get: (name) => {
         return new Promise((resolve, reject) => {
             resolve(memory[name])
@@ -15,7 +15,7 @@ cache.changeStore({
             resolve()
         })
     }
-})
+}
 
 require("puppeteer").launch({
     headless: false
@@ -23,15 +23,14 @@ require("puppeteer").launch({
     let page = await browser.newPage()
 
     await page.setRequestInterception(true);
-    page.on('request', async (request) => {
-        let type = await request.resourceType()
-        if(type == "document" || type == "script" || type == "font" || type == "stylesheet"){
-            cache.get(request).then((result) => {            
-                if(result){ 
-                    request.respond(result)
-                } else {
-                    request.continue()
-                }
+
+    page.on('request', (request) => {
+        let type = request.resourceType()
+        if (type == "document" || type == "script" || type == "font" || type == "stylesheet") {
+            cache.get(request, (result, wasFound) => {
+                if (!wasFound) return request.continue()
+
+                request.respond(result)
             })
         } else {
             request.continue()
@@ -39,7 +38,10 @@ require("puppeteer").launch({
     })
 
     page.on("requestfinished", async (request) => {
-        await cache.save(await request.response())
+        let type = request.resourceType()
+        if (type == "document" || type == "script" || type == "font" || type == "stylesheet") {
+            cache.save(request.response())
+        }
     })
 
     await page.goto("https://www.google.com/")

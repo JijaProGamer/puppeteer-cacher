@@ -17,7 +17,7 @@ let CACHE = new cacher(fullURL);
 
 let memory = {};
 
-CACHE.memoryStore = {
+CACHE.memory = {
   get: (name) => {
     return new Promise((resolve, reject) => {
       resolve(memory[name]);
@@ -34,34 +34,32 @@ CACHE.memoryStore = {
 await page.setRequestInterception(true);
 
 page.on("request", async (request) => {
-  let type = await request.resourceType();
+  let type = request.resourceType();
   if (
     type == "document" ||
     type == "script" ||
     type == "font" ||
     type == "stylesheet"
   ) {
-    CACHE.get(request).then((result) => {
-      if (result) {
-        request.respond(result);
-      } else {
-        request.continue();
-      }
+    CACHE.get(request, (result, wasFound) => {
+      if (!wasFound) return request.continue();
+
+      request.respond(result);
     });
   } else {
     request.continue();
   }
 });
 
-page.on("requestfinished", async (request) => {
-  let type = await request.resourceType();
+page.on("requestfinished", (request) => {
+  let type = request.resourceType();
   if (
     type == "document" ||
     type == "script" ||
     type == "font" ||
     type == "stylesheet"
   ) {
-    await CACHE.save(await request.response());
+    CACHE.save(request.response());
   }
 });
 ```
